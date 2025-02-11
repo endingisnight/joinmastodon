@@ -1,14 +1,43 @@
 import { FormattedMessage, useIntl } from "react-intl"
 import { AppCard } from "../components/AppCard"
-import classNames from "classnames"
 import { useState } from "react"
 import SelectMenu from "../components/SelectMenu"
 import { sortBy as _sortBy } from "lodash"
-import type { appsList } from "../data/apps"
+import type { app } from "../data/apps"
 import Category from "../components/Category"
 
 export type AppsGridProps = {
-  apps: appsList
+  apps: app[]
+}
+
+//prettier-ignore
+export const categories = {
+  all: "All",
+  libre: "Libre",
+  web: "Web",
+  fdroid: "F-Droid",
+  appimage: "AppImage",
+  flatpak: "Flatpak",
+  debian: "Debian",
+  arch: "Arch",
+
+  snap: "Snap",
+  micestore: "Microsoft Store",
+  windows: "Windows",
+  gplay: "Google Play",
+  ios: "iOS",
+  macos: "MacOS",
+  watchos: "WatchOS",
+  retro: "Retro",
+}
+
+//prettier-ignore
+export const sortOptions = {
+  date_added: "Recently Added",
+  paid: "Free",
+  libre: "Libre",
+  category: "Category",
+  name: "Alphabetical",
 }
 
 /** Renders AppCards as a grid, with sorting and filtering options */
@@ -16,44 +45,27 @@ export const AppsGrid = ({ apps }: AppsGridProps) => {
   const intl = useIntl()
   const [activeCategory, setActiveCategory] = useState("all")
 
-  //prettier-ignore
-  const categories = [
-    { key: "all", label: intl.formatMessage({ id: "browse_apps.all", defaultMessage: "All" }) },
-    { key: "android", label: intl.formatMessage({ id: "browse_apps.android", defaultMessage: "Android" }) },
-    { key: "ios", label: intl.formatMessage({ id: "browse_apps.ios", defaultMessage: "iOS" }) },
-    { key: "web", label: intl.formatMessage({ id: "browse_apps.web", defaultMessage: "Web" }) },
-    { key: "desktop", label: intl.formatMessage({ id: "browse_apps.desktop", defaultMessage: "Desktop" }) },
-    { key: "retro", label: intl.formatMessage({ id: "browse_apps.retro", defaultMessage: "Retro computing" }) },
-  ]
+  Object.keys(categories).forEach(k => {
+    // TODO this edits the global categories, if translations dont matter here then remove me.
+    categories[k] = intl.formatMessage({ id: `browse_apps.${k}`, defaultMessage: categories[k] })
+  })
 
-  /** normalizing the apps dictionary as an array */
-  const allApps = Object.entries(apps)
-    .map(([category, apps]) =>
-      apps.map(x => ({
-        ...x,
-        category,
-        paid: x.paid ?? false,
-        hidden_from_all: x.hidden_from_all ?? false,
-        released_on: new Date(x.released_on) ?? null,
-        categoryLabel: categories.find((c) => c.key === category)["label"],
-      }))
-    )
-    .flat()
+  Object.keys(sortOptions).forEach(k =>
+    sortOptions[k] = intl.formatMessage({ id: `sorting.${k}`, defaultMessage: sortOptions[k] })
+  )
 
-  //prettier-ignore
-  const sortOptions = [
-    { value: "date_added", label: intl.formatMessage({ id: "sorting.recently_added", defaultMessage: "Recently Added" }) },
-    { value: "paid", label: intl.formatMessage({ id: "sorting.free", defaultMessage: "Free" }) },
-    { value: "category", label: intl.formatMessage({ id: "sorting.category", defaultMessage: "Category" }) },
-    { value: "name", label: intl.formatMessage({ id: "sorting.name", defaultMessage: "Alphabetical" }) },
-  ]
-  const [sortOption, setSortOption] = useState(sortOptions[0].value)
-  const filteredApps = allApps.filter(
-    ({ category, hidden_from_all }) =>
-      category === activeCategory ||
-      (activeCategory === "all" && !hidden_from_all)
+  // filter & sort apps
+  const [sortOption, setSortOption] = useState(sortOptions[0])
+  const filteredApps = activeCategory === "all" ? apps : apps.filter(
+    app => app[activeCategory]
   )
   const sortedAndFilteredApps = _sortBy(filteredApps, sortOption)
+    // prefer open source
+    .sort((a, b) => {
+      if (!a.source < !b.source) return -1;
+      if (!a.source > !b.source) return 1;
+      return 0;
+    });
 
   return (
     <div>
@@ -66,15 +78,21 @@ export const AppsGrid = ({ apps }: AppsGridProps) => {
         </h2>
         <div className="-mx-gutter ps-gutter mb-6 overflow-x-auto">
           <div className="flex flex-wrap gap-gutter md:flex-nowrap">
-            {categories.map((category) => (
-              <Category
-                key={category.key}
-                value={category.key}
-                currentValue={activeCategory}
-                label={category.label}
-                onChange={(e) => setActiveCategory(e.target.value)}
-              />
-            ))}
+            {Object.keys(categories)
+              // remove categories that don't have atleast 3 apps
+              .filter(k => {
+                if (k !== 'all' && apps.filter(app => app[k]).length < 3) return false;
+                return true;
+              })
+              .map((category) => (
+                <Category
+                  key={category}
+                  value={category}
+                  currentValue={activeCategory}
+                  label={categories[category]}
+                  onChange={(e) => setActiveCategory(e.target.value)}
+                />
+              ))}
           </div>
         </div>
       </div>
@@ -87,11 +105,11 @@ export const AppsGrid = ({ apps }: AppsGridProps) => {
           onChange={(v) => {
             setSortOption(v)
           }}
-          options={sortOptions}
+          options={Object.keys(sortOptions).flatMap(x => ({ label: sortOptions[x], value: x }))}
         />
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4">
-        {sortedAndFilteredApps.map(AppCard)}
+        {sortedAndFilteredApps.map(app => AppCard(app, activeCategory))}
       </div>
     </div>
   )
