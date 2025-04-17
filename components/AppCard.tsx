@@ -1,6 +1,6 @@
 import Image from "next/legacy/image"
 import { IntlShape, useIntl } from "react-intl"
-import { categories } from "./AppsGrid"
+import { stores } from "./AppsGrid"
 import { app } from "../data/apps";
 
 /**
@@ -9,7 +9,7 @@ import { app } from "../data/apps";
  */
 function getAppUrl(app: app, activeCategory: string, intl: IntlShape) {
   if (activeCategory !== 'all' && !app[activeCategory])
-    throw new Error(`Failed to get app repo specifc url, did I forget to filter the app list?`);
+    throw new Error(`Failed to get app repo specifc url, did I forget to filter the app list? ${activeCategory}`);
   // app url isn't set, search for a repo url
   if (activeCategory === `all` && !app.url) {
     // ordered by preference
@@ -92,11 +92,11 @@ export const AppCard = (app: app, activeCategory: string) => {
   const categoryLabels = [];
 
   // add supported OS'
-  Object.keys(categories).forEach(cat => {
+  Object.keys(stores).forEach(cat => {
     if (!app[cat]) return;
     categoryLabels.push(
       <a href={getAppUrl(app, cat, intl)}>
-        {intl.formatMessage({ id: cat, defaultMessage: categories[cat] })}
+        {intl.formatMessage({ id: cat, defaultMessage: stores[cat] })}
       </a>
     );
     categoryLabels.push(`, `);

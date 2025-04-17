@@ -3,15 +3,70 @@ import { AppCard } from "../components/AppCard"
 import { useState } from "react"
 import SelectMenu from "../components/SelectMenu"
 import { sortBy as _sortBy } from "lodash"
-import type { app } from "../data/apps"
+import { type app } from "../data/apps"
 import Category from "../components/Category"
 
 export type AppsGridProps = {
   apps: app[]
 }
 
+export const devices = {
+  all: {
+    name: "All",
+    stores: []
+  },
+  desktop: {
+    name: "Desktop",
+    stores: [
+      "web",
+      "firefox",
+      "chrome",
+
+      "appimage",
+      "flatpak",
+      "snap",
+      "debian",
+      "arch",
+      "arch_aur",
+      "rpm",
+
+      "micestore",
+      "windows",
+
+      "maocos",
+      "brew",
+    ]
+  },
+  android: {
+    name: "Android",
+    stores: [
+      "web",
+
+      "fdroid",
+      "izzy",
+      "gplay",
+      "android",
+    ]
+  },
+  ios: {
+    name: "iOS",
+    stores: [
+      "web",
+      "ios",
+    ]
+  },
+  retro: {
+    name: "Retro",
+    stores: [
+      "retro",
+    ]
+  },
+};
+devices.all.stores = [].concat(...Object.values(devices).flatMap(x => x.stores))
+  .filter((x, i, a) => a.indexOf(x) === i)
+
 //prettier-ignore
-export const categories = {
+export const stores = {
   all: "All",
   web: "Web",
   fdroid: "F-Droid",
@@ -43,24 +98,32 @@ export const sortOptions = {
 /** Renders AppCards as a grid, with sorting and filtering options */
 export const AppsGrid = ({ apps }: AppsGridProps) => {
   const intl = useIntl()
-  const [activeCategory, setActiveCategory] = useState("all")
-  const [sortOption, setSortOption] = useState(`source`); // we want to promote the libre ones
+  const [selectedDevice, setDeviceCategory] = useState("all")
+  const [sortOption, setSortOption] = useState(`source`);
+  const [selectedStore, setStoreOption] = useState(`all`);
 
-  Object.keys(categories).forEach(k => {
+  Object.keys(stores).forEach(k => {
     // TODO this edits the global categories, if translations dont matter here then remove me.
-    categories[k] = intl.formatMessage({ id: `browse_apps.${k}`, defaultMessage: categories[k] })
+    stores[k] = intl.formatMessage({ id: `browse_apps.${k}`, defaultMessage: stores[k] })
   })
 
   Object.keys(sortOptions).forEach(k =>
     sortOptions[k] = intl.formatMessage({ id: `sorting.${k}`, defaultMessage: sortOptions[k] })
   )
 
-  // filter & sort apps
-  const filteredApps = (activeCategory === "all" ? apps : apps.filter(
-    app => app[activeCategory]
-  ))
+  // filter apps
+  const filteredApps = selectedStore === "all"
+    ? apps
+    : apps
+    // filter for devices
+      .filter(
+        app => devices[selectedDevice].stores.find(x => app[x])
+      )
+      .filter(
+        app => app[selectedStore]
+      )
 
-  // prefer open source
+  // sort apps
   filteredApps.sort((a, b) => {
     // normalize
     // when changing, be sure to check with each default sortOption since SSR can be a royal pain.
@@ -93,28 +156,22 @@ export const AppsGrid = ({ apps }: AppsGridProps) => {
               defaultMessage="Browse third-party apps"
             />
           </h2>
-          <span>
-            <FormattedMessage
-              id="browse_apps.title_sub2"
-              defaultMessage="(and extensions)"
-            />
-          </span>
         </div>
         <div className="-mx-gutter ps-gutter mb-6 overflow-x-auto">
           <div className="flex flex-wrap gap-gutter md:flex-nowrap">
-            {Object.keys(categories)
+            {Object.keys(devices)
               // remove categories that don't have atleast 3 apps
-              .filter(k => {
-                if (k !== 'all' && apps.filter(app => app[k]).length < 3) return false;
-                return true;
-              })
-              .map(category => (
+              //.filter(k => {
+              //  if (k !== 'all' && apps.filter(app => app[k]).length < 3) return false;
+              //  return true;
+              //})
+              .map(device => (
                 <Category
-                  key={category}
-                  value={category}
-                  currentValue={activeCategory}
-                  label={categories[category]}
-                  onChange={(e) => setActiveCategory(e.target.value)}
+                  key={device}
+                  value={device}
+                  currentValue={selectedDevice}
+                  label={devices[device].name}
+                  onChange={(e) => setDeviceCategory(e.target.value)}
                 />
               ))}
           </div>
@@ -129,9 +186,20 @@ export const AppsGrid = ({ apps }: AppsGridProps) => {
           onChange={setSortOption}
           options={Object.keys(sortOptions).flatMap(x => ({ label: sortOptions[x], value: x }))}
         />
+        <SelectMenu
+          label={
+            <FormattedMessage id="filtering.stores" defaultMessage="Platform" />
+          }
+          value={selectedStore}
+          onChange={setStoreOption}
+          options={Object.keys(stores)
+            // filter stores by platform
+            .filter(x => devices[selectedDevice].stores.includes(x))
+            .flatMap(x => ({ label: stores[x], value: x }))}
+        />
       </div>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4">
-        {filteredApps.map(app => AppCard(app, activeCategory))}
+        {filteredApps.map(app => AppCard(app, selectedStore))}
       </div>
     </div>
   )
