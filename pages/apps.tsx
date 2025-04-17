@@ -2,6 +2,7 @@ import { sortBy as _sortBy } from "lodash"
 
 import downloadOnGooglePlay from "../public/badges/google-play.svg"
 import downloadOnAppStore from "../public/badges/app-store.svg"
+import downloadOnFDroid from "../public/badges/f-droid.svg"
 
 import { FormattedMessage, useIntl } from "react-intl"
 import Head from "next/head"
@@ -57,8 +58,8 @@ const AppsPage = () => {
 
           <div className="grid grid-cols-2 justify-center gap-gutter md:justify-start">
             <a href={`https://f-droid.org/${intl.locale}/packages/org.joinmastodon.android`}>
-              <img // "Image" seemingly cant have a dynamic src
-                src={`/badges/f-droid-${intl.locale}.svg`}
+              <Image
+                src={downloadOnFDroid}
                 alt="Get it on F-Droid"
               />
             </a>

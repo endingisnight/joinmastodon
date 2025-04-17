@@ -3,6 +3,7 @@ import { FormattedMessage, useIntl } from "react-intl"
 
 import downloadOnGooglePlay from "../public/badges/google-play.svg"
 import downloadOnAppStore from "../public/badges/app-store.svg"
+import downloadOnFDroid from "../public/badges/f-droid.svg"
 
 export type AppHeroProps = {
   /** Image source value passed to `next/image`'s `src` */
@@ -38,8 +39,8 @@ export const AppHero = ({
         <div className="grid-cols-12 justify-center gap-gutter md:grid">
           <div className="col-span-6 col-start-4 mx-auto grid max-w-xs grid-cols-2 justify-center gap-gutter md:mx-0 md:max-w-none md:justify-start xl:col-span-4 xl:col-start-5">
             <a href={`https://f-droid.org/${intl.locale}/packages/org.joinmastodon.android`}>
-              <img // "Image" seemingly cant have a dynamic src
-                src={`/badges/f-droid-${intl.locale}.svg`}
+              <Image
+                src={downloadOnFDroid}
                 alt="Get it on F-Droid"
               />
             </a>
